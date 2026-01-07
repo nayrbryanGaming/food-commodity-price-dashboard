@@ -1,0 +1,19 @@
+# =============================================================================
+# Panel Harga Pangan Dashboard - Requirements
+# =============================================================================
+# Install: pip install -r requirements.txt
+# =============================================================================
+
+# Core dependencies
+streamlit>=1.28.0,<2.0.0
+pandas>=2.0.0,<3.0.0
+numpy>=1.24.0,<2.0.0
+
+# Visualization
+plotly>=5.15.0,<6.0.0
+
+# Data handling
+python-dateutil>=2.8.2
+
+# Optional: Performance optimization
+# pyarrow>=12.0.0  # Uncomment for faster CSV parsing with pd.read_csv(engine='pyarrow')
