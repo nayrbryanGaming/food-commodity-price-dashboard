@@ -145,15 +145,15 @@ REGIONAL_RANKING_COUNT = 10
 
 # Plotly color palette (accessible, high contrast)
 CHART_COLORS = [
-    "#1f77b4",  # Blue
-    "#ff7f0e",  # Orange
-    "#2ca02c",  # Green
-    "#d62728",  # Red
-    "#9467bd",  # Purple
-    "#8c564b",  # Brown
-    "#e377c2",  # Pink
-    "#7f7f7f",  # Gray
-    "#bcbd22",  # Yellow-green
+    "#2563EB",  # Bright Blue
+    "#EA580C",  # Bright Orange
+    "#16A34A",  # Bright Green
+    "#DC2626",  # Bright Red
+    "#7C3AED",  # Bright Purple
+    "#A16207",  # Gold Brown
+    "#DB2777",  # Bright Pink
+    "#4B5563",  # Medium Gray
+    "#84CC16",  # Lime Green
 ]
 
 # Chart layout defaults

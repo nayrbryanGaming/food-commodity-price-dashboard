@@ -609,12 +609,20 @@ def render_sidebar(df: pd.DataFrame, quality_stats: dict):  # noqa: ARG001 - qua
     
     filters = {}
     
-    # Analyst mode toggle
+    # Initialize analyst_mode in session_state if not exists
+    if 'analyst_mode' not in st.session_state:
+        st.session_state.analyst_mode = False
+    
+    # Analyst mode toggle - use session_state to persist value
     filters['analyst_mode'] = st.sidebar.toggle(
         "Mode Analis",
-        value=False,
+        value=st.session_state.analyst_mode,
+        key="analyst_mode_toggle",
         help="Aktifkan fitur analitik lanjutan"
     )
+    
+    # Update session_state
+    st.session_state.analyst_mode = filters['analyst_mode']
     
     # Dynamic indicator based on analyst mode state
     if filters['analyst_mode']:

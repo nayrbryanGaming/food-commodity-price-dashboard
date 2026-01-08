@@ -31,7 +31,7 @@ from src.charts import (
     format_kpi_value,
     format_change_value,
 )
-from src.theme import apply_theme
+from src.theme import apply_theme, render_styled_dataframe
 
 # =============================================================================
 # PAGE CONFIGURATION
@@ -61,16 +61,26 @@ def get_trend_display(trend_status: str) -> tuple:
 
 
 def render_kpi_card(label: str, value: str, delta: str = None, delta_color: str = None):
-    """Render a styled KPI card."""
+    """Render a styled KPI card with theme support."""
+    from src.theme import is_dark_mode
+    
+    is_dark = is_dark_mode()
+    
+    # Theme-aware colors
+    bg_color = "#1E1E2E" if is_dark else "#f8f9fa"
+    border_color = "#333" if is_dark else "#e9ecef"
+    label_color = "#D0D0D0" if is_dark else "#6c757d"
+    value_color = "#FFFFFF" if is_dark else "#1E3A5F"
+    
     delta_html = ""
     if delta:
         delta_html = f'<p style="color: {delta_color}; font-size: 1rem; margin: 0;">{delta}</p>'
     
     st.markdown(f"""
-    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; 
-                border: 1px solid #e9ecef; text-align: center; height: 140px;">
-        <p style="color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem;">{label}</p>
-        <h2 style="color: #1E3A5F; margin: 0.5rem 0; font-size: 1.8rem;">{value}</h2>
+    <div style="background: {bg_color}; padding: 1.5rem; border-radius: 12px; 
+                border: 1px solid {border_color}; text-align: center; height: 140px;">
+        <p style="color: {label_color}; font-size: 0.9rem; margin-bottom: 0.5rem;">{label}</p>
+        <h2 style="color: {value_color}; margin: 0.5rem 0; font-size: 1.8rem;">{value}</h2>
         {delta_html}
     </div>
     """, unsafe_allow_html=True)
@@ -212,11 +222,11 @@ def main():
     with col2:
         st.markdown(f"**{LABELS['top_movers_down']}**")
         if not top_losers.empty:
-            # Show losers table
+            # Show losers table with styled HTML
             losers_display = top_losers.copy()
             losers_display['change_pct'] = losers_display['change_pct'].apply(lambda x: f"{x:+.1f}%")
             losers_display.columns = ['Wilayah', 'Perubahan']
-            st.dataframe(losers_display, use_container_width=True, hide_index=True)
+            render_styled_dataframe(losers_display, max_height="300px")
         else:
             st.info("Data regional tidak tersedia untuk penurunan tertinggi.")
     

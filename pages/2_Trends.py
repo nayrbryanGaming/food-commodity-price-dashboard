@@ -155,10 +155,15 @@ def main():
     if analyst_mode and show_anomalies:
         st.markdown("---")
         st.markdown("### Deteksi Anomali")
-        st.markdown("""
-        <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-            <strong>Metode:</strong> Anomali terdeteksi ketika perubahan harga harian melebihi 10%.
-            <br>Ini membantu mengidentifikasi pergerakan harga yang tidak biasa.
+        
+        from src.theme import is_dark_mode
+        info_bg = "rgba(33, 150, 243, 0.15)" if is_dark_mode() else "#e3f2fd"
+        info_text = "#E3F2FD" if is_dark_mode() else "#1565C0"
+        
+        st.markdown(f"""
+        <div style="background: {info_bg}; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #2196f3;">
+            <span style="color: {info_text};"><strong>Metode:</strong> Anomali terdeteksi ketika perubahan harga harian melebihi 10%.
+            <br>Ini membantu mengidentifikasi pergerakan harga yang tidak biasa.</span>
         </div>
         """, unsafe_allow_html=True)
         

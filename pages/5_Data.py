@@ -18,7 +18,7 @@ from src.constants import (
     COL_REGION,
     COL_PRICE,
 )
-from src.theme import apply_theme
+from src.theme import apply_theme, render_styled_dataframe
 
 # =============================================================================
 # PAGE CONFIGURATION
@@ -277,13 +277,8 @@ def main():
             if total_rows > max_rows:
                 st.info(f"Menampilkan {max_rows:,} dari {total_rows:,} catatan. Tingkatkan batas tampilan untuk melihat lebih banyak.")
             
-            # Display the table
-            st.dataframe(
-                display_formatted,
-                use_container_width=True,
-                hide_index=True,
-                height=400
-            )
+            # Display the table using styled HTML for guaranteed contrast
+            render_styled_dataframe(display_formatted, max_height="400px")
         else:
             st.info("Tidak ada data untuk ditampilkan dengan filter saat ini.")
     except Exception as e:
@@ -359,7 +354,7 @@ def main():
                 'Jumlah Non-Null': [df[col].notna().sum() for col in df.columns],
                 'Jumlah Null': [df[col].isna().sum() for col in df.columns]
             })
-            st.dataframe(col_info, use_container_width=True, hide_index=True)
+            render_styled_dataframe(col_info, max_height="250px")
     except Exception as e:
         st.warning(f"Tidak dapat menampilkan metadata: {str(e)}")
 

@@ -26,7 +26,7 @@ from src.charts import (
     create_price_heatmap,
     create_small_multiples,
 )
-from src.theme import apply_theme
+from src.theme import apply_theme, render_styled_dataframe
 
 # =============================================================================
 # PAGE CONFIGURATION
@@ -166,13 +166,18 @@ def main():
     if analyst_mode:
         st.markdown("---")
         st.markdown(f"### Peta Panas Perubahan Harga")
-        st.markdown("Peta perubahan harga mingguan (dalam persen)")
+        st.markdown("Peta perubahan harga mingguan/bulanan (dalam persen)")
         
         col1, col2 = st.columns([1, 4])
         with col1:
             resample = st.radio("Periode", ["Mingguan", "Bulanan"], index=0)
         
-        resample_code = 'W' if resample == "Mingguan" else 'M'
+        # Use 'ME' instead of deprecated 'M' for month-end
+        resample_code = 'W' if resample == "Mingguan" else 'ME'
+        
+        # Check if we have enough data
+        min_periods_needed = 2 if resample == "Mingguan" else 2
+        period_text = "2 minggu" if resample == "Mingguan" else "2 bulan"
         
         try:
             fig_heatmap = create_price_heatmap(
@@ -185,9 +190,17 @@ def main():
             if fig_heatmap.data:
                 st.plotly_chart(fig_heatmap, use_container_width=True)
             else:
-                st.info("Data tidak cukup untuk membuat peta panas.")
+                st.warning(f"""
+                **Data tidak cukup untuk membuat peta panas.**
+                
+                Peta panas membutuhkan minimal **{period_text}** data untuk menghitung perubahan harga.
+                
+                **Solusi:**
+                - Perbesar rentang tanggal di sidebar (Filter → Rentang Tanggal)
+                - Coba pilih periode "Mingguan" jika data terbatas
+                """)
         except Exception as e:
-            st.info("Data tidak cukup untuk membuat peta panas.")
+            st.warning(f"Gagal membuat peta panas: Pastikan rentang tanggal minimal {period_text}.")
     
     # ==========================================================================
     # SUMMARY TABLE
@@ -226,11 +239,8 @@ def main():
                 }
                 display_df['Status'] = display_df['Status'].map(lambda x: status_map.get(x, x))
             
-            st.dataframe(
-                display_df,
-                use_container_width=True,
-                hide_index=True
-            )
+            # Use styled HTML table for better visibility
+            render_styled_dataframe(display_df, max_height="350px")
             
             # Download button
             csv_data = summary_df.to_csv(index=False)

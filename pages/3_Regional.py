@@ -28,7 +28,7 @@ from src.charts import (
     create_regional_ranking_bar,
     create_volatility_scatter,
 )
-from src.theme import apply_theme
+from src.theme import apply_theme, render_styled_dataframe
 
 # =============================================================================
 # PAGE CONFIGURATION
@@ -104,11 +104,15 @@ def main():
     )
     
     if not has_regional_data:
-        st.markdown("""
-        <div style="background: #fff3e0; padding: 2rem; border-radius: 12px; text-align: center;">
-            <h3>Data Regional Tidak Tersedia</h3>
-            <p>Data untuk komoditas ini tidak memiliki informasi regional yang cukup untuk perbandingan.</p>
-            <p>Silakan pilih komoditas lain atau periksa sumber data.</p>
+        from src.theme import is_dark_mode
+        warning_bg = "rgba(255, 152, 0, 0.15)" if is_dark_mode() else "#fff3e0"
+        warning_text = "#FFF3E0" if is_dark_mode() else "#E65100"
+        
+        st.markdown(f"""
+        <div style="background: {warning_bg}; padding: 2rem; border-radius: 12px; text-align: center; border-left: 4px solid #ff9800;">
+            <h3 style="color: {warning_text};">Data Regional Tidak Tersedia</h3>
+            <p style="color: {warning_text};">Data untuk komoditas ini tidak memiliki informasi regional yang cukup untuk perbandingan.</p>
+            <p style="color: {warning_text};">Silakan pilih komoditas lain atau periksa sumber data.</p>
         </div>
         """, unsafe_allow_html=True)
         st.stop()
@@ -199,27 +203,27 @@ def main():
             COL_PRICE: ['mean', 'min', 'max', 'std', 'last']
         }).round(0)
         
-        regional_data.columns = ['Rata-rata', 'Minimum', 'Maksimum', 'Std Dev', 'Harga Terkini']
-        regional_data = regional_data.sort_values('Harga Terkini', ascending=False)
-        
-        # Format as currency
-        for col in regional_data.columns:
-            regional_data[col] = regional_data[col].apply(lambda x: f"Rp {x:,.0f}" if pd.notna(x) else "-")
-        
-        st.dataframe(
-            regional_data.reset_index(),
-            use_container_width=True,
-            hide_index=True
-        )
-        
-        # Download button
-        csv_data = regional_data.reset_index().to_csv(index=False)
-        st.download_button(
-            label="Unduh Ringkasan Regional (CSV)",
-            data=csv_data,
-            file_name=f"ringkasan_regional_{commodity.replace(' ', '_')}.csv",
-            mime="text/csv"
-        )
+        if regional_data.empty:
+            st.info("Tidak ada data regional untuk komoditas ini.")
+        else:
+            regional_data.columns = ['Rata-rata', 'Minimum', 'Maksimum', 'Std Dev', 'Harga Terkini']
+            regional_data = regional_data.sort_values('Harga Terkini', ascending=False)
+            
+            # Format as currency
+            for col in regional_data.columns:
+                regional_data[col] = regional_data[col].apply(lambda x: f"Rp {x:,.0f}" if pd.notna(x) else "-")
+            
+            # Use styled HTML table for better visibility
+            render_styled_dataframe(regional_data.reset_index())
+            
+            # Download button
+            csv_data = regional_data.reset_index().to_csv(index=False)
+            st.download_button(
+                label="Unduh Ringkasan Regional (CSV)",
+                data=csv_data,
+                file_name=f"ringkasan_regional_{commodity.replace(' ', '_')}.csv",
+                mime="text/csv"
+            )
     except Exception as e:
         st.warning(f"Tidak dapat membuat ringkasan regional: {str(e)}")
 

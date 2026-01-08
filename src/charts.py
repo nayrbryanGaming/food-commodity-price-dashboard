@@ -3,6 +3,7 @@ charts.py - Plotly chart factory module.
 
 Creates all visualization components for the dashboard.
 Uses consistent styling defined in constants.
+Supports dark/light theme switching.
 """
 
 import pandas as pd
@@ -12,6 +13,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from typing import List, Optional, Dict, Tuple
 from datetime import datetime
+import streamlit as st
 
 from .constants import (
     COL_DATE,
@@ -27,9 +29,41 @@ from .constants import (
 )
 
 
+def get_chart_colors():
+    """Get theme-aware colors for charts with high contrast."""
+    is_dark = st.session_state.get('theme_mode', 'light') == 'dark'
+    
+    if is_dark:
+        return {
+            'paper_bgcolor': '#0E1117',
+            'plot_bgcolor': '#1A1A2E',
+            'font_color': '#FFFFFF',
+            'grid_color': 'rgba(255,255,255,0.12)',
+            'line_color': 'rgba(255,255,255,0.25)',
+            'title_color': '#FFFFFF',
+            'axis_color': '#E0E0E0',  # Brighter for better readability
+            'axis_title_color': '#FFFFFF',  # Full white for axis titles
+            'hover_bgcolor': '#2D2D3D',
+            'tick_color': '#D0D0D0',  # High contrast tick labels
+        }
+    else:
+        return {
+            'paper_bgcolor': '#FFFFFF',
+            'plot_bgcolor': '#FAFAFA',
+            'font_color': '#1A1A1A',
+            'grid_color': 'rgba(0,0,0,0.08)',
+            'line_color': 'rgba(0,0,0,0.15)',
+            'title_color': '#1E3A5F',
+            'axis_color': '#333333',  # Darker for better readability
+            'axis_title_color': '#1E3A5F',  # Match title color
+            'hover_bgcolor': '#FFFFFF',
+            'tick_color': '#444444',  # High contrast tick labels
+        }
+
+
 def apply_default_layout(fig: go.Figure, title: str = None) -> go.Figure:
     """
-    Apply consistent layout styling to a figure.
+    Apply consistent layout styling to a figure with theme support.
     
     Args:
         fig: Plotly figure.
@@ -38,35 +72,53 @@ def apply_default_layout(fig: go.Figure, title: str = None) -> go.Figure:
     Returns:
         Styled figure.
     """
+    colors = get_chart_colors()
+    
     fig.update_layout(
-        title=title,
-        font_family=CHART_LAYOUT["font_family"],
-        title_font_size=CHART_LAYOUT["title_font_size"],
-        legend_font_size=CHART_LAYOUT["legend_font_size"],
+        title=dict(
+            text=title,
+            font=dict(color=colors['title_color'], size=CHART_LAYOUT["title_font_size"])
+        ) if title else None,
+        font=dict(
+            family=CHART_LAYOUT["font_family"],
+            color=colors['font_color']
+        ),
+        legend=dict(
+            font=dict(size=CHART_LAYOUT["legend_font_size"], color=colors['font_color']),
+            bgcolor='rgba(0,0,0,0)',
+        ),
         margin=CHART_LAYOUT["margin"],
         height=CHART_LAYOUT["height"],
-        paper_bgcolor=CHART_LAYOUT["paper_bgcolor"],
-        plot_bgcolor=CHART_LAYOUT["plot_bgcolor"],
+        paper_bgcolor=colors['paper_bgcolor'],
+        plot_bgcolor=colors['plot_bgcolor'],
         hovermode="x unified",
+        hoverlabel=dict(
+            bgcolor=colors['hover_bgcolor'],
+            font_color=colors['font_color'],
+        ),
     )
     
     fig.update_xaxes(
         showgrid=True,
         gridwidth=1,
-        gridcolor="rgba(128,128,128,0.2)",
+        gridcolor=colors['grid_color'],
         showline=True,
         linewidth=1,
-        linecolor="rgba(128,128,128,0.3)",
+        linecolor=colors['line_color'],
+        tickfont=dict(color=colors['tick_color'], size=12),
+        title_font=dict(color=colors['axis_title_color'], size=13),
     )
     
     fig.update_yaxes(
         showgrid=True,
         gridwidth=1,
-        gridcolor="rgba(128,128,128,0.2)",
+        gridcolor=colors['grid_color'],
         showline=True,
         linewidth=1,
-        linecolor="rgba(128,128,128,0.3)",
+        linecolor=colors['line_color'],
         tickformat=",",
+        tickfont=dict(color=colors['tick_color'], size=12),
+        title_font=dict(color=colors['axis_title_color'], size=13),
     )
     
     return fig
@@ -153,7 +205,7 @@ def create_price_trend_chart(
             ))
     
     fig.update_layout(
-        xaxis_title="Date",
+        xaxis_title="Tanggal",
         yaxis_title=LABELS["price_unit"],
         legend=dict(
             orientation="h",
@@ -164,7 +216,7 @@ def create_price_trend_chart(
         )
     )
     
-    return apply_default_layout(fig, f"Price Trend: {commodity}")
+    return apply_default_layout(fig, f"Tren Harga: {commodity}")
 
 
 def create_price_trend_with_anomalies(
@@ -235,7 +287,7 @@ def create_price_trend_with_anomalies(
         yaxis_title=LABELS["price_unit"],
     )
     
-    return apply_default_layout(fig, f"Price Anomalies: {commodity} - {region}")
+    return apply_default_layout(fig, f"Anomali Harga: {commodity} - {region}")
 
 
 def create_top_movers_bar(
@@ -252,40 +304,59 @@ def create_top_movers_bar(
     Returns:
         Plotly figure with subplots.
     """
+    colors = get_chart_colors()
+    is_dark = st.session_state.get('theme_mode', 'light') == 'dark'
+    
     fig = make_subplots(
         rows=1, cols=2,
         subplot_titles=(LABELS["top_movers_up"], LABELS["top_movers_down"]),
         horizontal_spacing=0.15
     )
     
-    # Top gainers
+    # Text color for bar labels
+    bar_text_color = "#FFFFFF" if is_dark else "#1A1A1A"
+    
+    # Top gainers - bright green
     if not gainers.empty:
         fig.add_trace(go.Bar(
             y=gainers[COL_REGION],
             x=gainers['change_pct'],
             orientation='h',
-            marker_color=KPI_POSITIVE_COLOR,
+            marker_color="#16A34A",
+            marker_line_color="#166534",
+            marker_line_width=2,
             text=gainers['change_pct'].apply(lambda x: f"+{x:.1f}%"),
             textposition='outside',
-            hovertemplate="<b>%{y}</b><br>Change: +%{x:.1f}%<extra></extra>"
+            textfont=dict(color=bar_text_color, size=12, family="Arial Black"),
+            hovertemplate="<b>%{y}</b><br>Perubahan: +%{x:.1f}%<extra></extra>",
+            width=0.7,
         ), row=1, col=1)
     
-    # Top losers
+    # Top losers - bright red
     if not losers.empty:
         fig.add_trace(go.Bar(
             y=losers[COL_REGION],
             x=losers['change_pct'],
             orientation='h',
-            marker_color=KPI_NEGATIVE_COLOR,
+            marker_color="#DC2626",
+            marker_line_color="#991B1B",
+            marker_line_width=2,
             text=losers['change_pct'].apply(lambda x: f"{x:.1f}%"),
             textposition='outside',
-            hovertemplate="<b>%{y}</b><br>Change: %{x:.1f}%<extra></extra>"
+            textfont=dict(color=bar_text_color, size=12, family="Arial Black"),
+            hovertemplate="<b>%{y}</b><br>Perubahan: %{x:.1f}%<extra></extra>",
+            width=0.7,
         ), row=1, col=2)
     
     fig.update_layout(
         showlegend=False,
-        height=350,
+        height=400,
+        bargap=0.3,
     )
+    
+    # Update subplot title colors
+    for annotation in fig['layout']['annotations']:
+        annotation['font'] = dict(color=colors['title_color'], size=14, family="Arial Black")
     
     fig.update_yaxes(autorange="reversed")
     
@@ -306,11 +377,21 @@ def create_regional_ranking_bar(
     Returns:
         Plotly figure with subplots.
     """
+    colors = get_chart_colors()
+    is_dark = st.session_state.get('theme_mode', 'light') == 'dark'
+    
     fig = make_subplots(
         rows=1, cols=2,
         subplot_titles=(LABELS["highest_prices"], LABELS["lowest_prices"]),
         horizontal_spacing=0.15
     )
+    
+    # High contrast bar colors - always visible
+    bar_color_high = "#2563EB"  # Bright Blue
+    bar_color_low = "#16A34A"   # Bright Green
+    
+    # Text color for bar labels - always dark for readability
+    bar_text_color = "#FFFFFF" if is_dark else "#1A1A1A"
     
     # Highest prices
     if not highest.empty:
@@ -318,10 +399,14 @@ def create_regional_ranking_bar(
             y=highest[COL_REGION],
             x=highest[COL_PRICE],
             orientation='h',
-            marker_color=CHART_COLORS[0],
+            marker_color=bar_color_high,
+            marker_line_color="#1E40AF",
+            marker_line_width=2,
             text=highest[COL_PRICE].apply(lambda x: f"Rp {x:,.0f}"),
             textposition='outside',
-            hovertemplate="<b>%{y}</b><br>Price: Rp %{x:,.0f}<extra></extra>"
+            textfont=dict(color=bar_text_color, size=12, family="Arial Black"),
+            hovertemplate="<b>%{y}</b><br>Harga: Rp %{x:,.0f}<extra></extra>",
+            width=0.7,
         ), row=1, col=1)
     
     # Lowest prices
@@ -330,16 +415,25 @@ def create_regional_ranking_bar(
             y=lowest[COL_REGION],
             x=lowest[COL_PRICE],
             orientation='h',
-            marker_color=CHART_COLORS[2],
+            marker_color=bar_color_low,
+            marker_line_color="#166534",
+            marker_line_width=2,
             text=lowest[COL_PRICE].apply(lambda x: f"Rp {x:,.0f}"),
             textposition='outside',
-            hovertemplate="<b>%{y}</b><br>Price: Rp %{x:,.0f}<extra></extra>"
+            textfont=dict(color=bar_text_color, size=12, family="Arial Black"),
+            hovertemplate="<b>%{y}</b><br>Harga: Rp %{x:,.0f}<extra></extra>",
+            width=0.7,
         ), row=1, col=2)
     
     fig.update_layout(
         showlegend=False,
-        height=400,
+        height=450,
+        bargap=0.3,
     )
+    
+    # Update subplot title colors
+    for annotation in fig['layout']['annotations']:
+        annotation['font'] = dict(color=colors['title_color'], size=14, family="Arial Black")
     
     fig.update_yaxes(autorange="reversed")
     
@@ -451,7 +545,7 @@ def create_multi_commodity_chart(
         )
     )
     
-    return apply_default_layout(fig, f"Commodity Comparison - {region}")
+    return apply_default_layout(fig, f"Perbandingan Komoditas - {region}")
 
 
 def create_price_heatmap(
@@ -506,6 +600,8 @@ def create_price_heatmap(
     if pivot.shape[1] > 20:
         pivot = pivot.iloc[:, -20:]
     
+    colors = get_chart_colors()
+    
     fig = go.Figure(data=go.Heatmap(
         z=pivot.values,
         x=pivot.columns,
@@ -514,15 +610,20 @@ def create_price_heatmap(
         zmid=0,
         text=np.round(pivot.values, 1),
         texttemplate="%{text}%",
-        textfont={"size": 10},
-        hovertemplate="Commodity: %{y}<br>" +
-                     "Period: %{x}<br>" +
-                     "Change: %{z:.1f}%<extra></extra>"
+        textfont={"size": 10, "color": colors['font_color']},
+        hovertemplate="Komoditas: %{y}<br>" +
+                     "Periode: %{x}<br>" +
+                     "Perubahan: %{z:.1f}%<extra></extra>",
+        colorbar=dict(
+            title="Perubahan (%)",
+            titlefont=dict(color=colors['font_color']),
+            tickfont=dict(color=colors['axis_color']),
+        )
     ))
     
     fig.update_layout(
-        xaxis_title="Period",
-        yaxis_title="Commodity",
+        xaxis_title="Periode",
+        yaxis_title="Komoditas",
     )
     
     return apply_default_layout(fig, LABELS["price_heatmap"])
@@ -599,7 +700,7 @@ def create_small_multiples(
     
     fig.update_yaxes(tickformat=",")
     
-    return apply_default_layout(fig, f"Commodity Comparison - {region}")
+    return apply_default_layout(fig, f"Perbandingan Komoditas - {region}")
 
 
 def format_kpi_value(value: float, is_currency: bool = True) -> str:
