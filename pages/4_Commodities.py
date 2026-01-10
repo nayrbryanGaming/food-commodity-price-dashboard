@@ -166,18 +166,14 @@ def main():
     if analyst_mode:
         st.markdown("---")
         st.markdown(f"### Peta Panas Perubahan Harga")
-        st.markdown("Peta perubahan harga mingguan/bulanan (dalam persen)")
+        st.markdown("Peta perubahan harga harian/mingguan (dalam persen)")
         
         col1, col2 = st.columns([1, 4])
         with col1:
-            resample = st.radio("Periode", ["Mingguan", "Bulanan"], index=0)
+            resample = st.radio("Periode", ["Harian", "Mingguan"], index=0)
         
-        # Use 'ME' instead of deprecated 'M' for month-end
-        resample_code = 'W' if resample == "Mingguan" else 'ME'
-        
-        # Check if we have enough data
-        min_periods_needed = 2 if resample == "Mingguan" else 2
-        period_text = "2 minggu" if resample == "Mingguan" else "2 bulan"
+        resample_code = 'D' if resample == "Harian" else 'W'
+        period_text = "1 minggu" if resample == "Harian" else "1 bulan"
         
         try:
             fig_heatmap = create_price_heatmap(
@@ -190,17 +186,9 @@ def main():
             if fig_heatmap.data:
                 st.plotly_chart(fig_heatmap, use_container_width=True)
             else:
-                st.warning(f"""
-                **Data tidak cukup untuk membuat peta panas.**
-                
-                Peta panas membutuhkan minimal **{period_text}** data untuk menghitung perubahan harga.
-                
-                **Solusi:**
-                - Perbesar rentang tanggal di sidebar (Filter → Rentang Tanggal)
-                - Coba pilih periode "Mingguan" jika data terbatas
-                """)
+                st.warning(f"Data tidak cukup. Pastikan rentang tanggal minimal **{period_text}**.")
         except Exception as e:
-            st.warning(f"Gagal membuat peta panas: Pastikan rentang tanggal minimal {period_text}.")
+            st.warning(f"Gagal membuat peta panas: {str(e)}")
     
     # ==========================================================================
     # SUMMARY TABLE

@@ -552,21 +552,20 @@ def create_price_heatmap(
     df: pd.DataFrame,
     commodities: List[str],
     region: str,
-    resample: str = 'W'
+    resample: str = 'D'
 ) -> go.Figure:
     """
-    Create heatmap of weekly/monthly price changes.
+    Create heatmap of daily/weekly price changes.
     
     Args:
         df: Canonical DataFrame.
         commodities: List of commodities.
         region: Region name.
-        resample: Resample frequency ('W' for weekly, 'M' for monthly).
+        resample: 'D' for daily (needs 1 week), 'W' for weekly (needs 1 month).
         
     Returns:
         Plotly figure.
     """
-    # Prepare data for heatmap
     heatmap_data = []
     
     for commodity in commodities:
@@ -577,14 +576,22 @@ def create_price_heatmap(
             continue
         
         data = data.set_index(COL_DATE).sort_index()
-        resampled = data[COL_PRICE].resample(resample).last()
+        
+        if resample == 'D':
+            # Daily: use raw data
+            resampled = data[COL_PRICE]
+        else:
+            # Weekly
+            resampled = data[COL_PRICE].resample(resample).last()
+        
         pct_changes = resampled.pct_change() * 100
         
         for date, change in pct_changes.items():
             if pd.notna(change):
+                date_str = date.strftime('%m/%d')
                 heatmap_data.append({
                     'Commodity': commodity,
-                    'Period': date.strftime('%Y-%m-%d'),
+                    'Period': date_str,
                     'Change': change
                 })
     
@@ -596,11 +603,13 @@ def create_price_heatmap(
     # Pivot for heatmap
     pivot = heatmap_df.pivot(index='Commodity', columns='Period', values='Change')
     
-    # Limit columns if too many
-    if pivot.shape[1] > 20:
-        pivot = pivot.iloc[:, -20:]
+    # Limit columns
+    max_cols = 14 if resample == 'D' else 8
+    if pivot.shape[1] > max_cols:
+        pivot = pivot.iloc[:, -max_cols:]
     
     colors = get_chart_colors()
+    period_label = "Harian" if resample == 'D' else "Mingguan"
     
     fig = go.Figure(data=go.Heatmap(
         z=pivot.values,
@@ -615,18 +624,17 @@ def create_price_heatmap(
                      "Periode: %{x}<br>" +
                      "Perubahan: %{z:.1f}%<extra></extra>",
         colorbar=dict(
-            title="Perubahan (%)",
-            titlefont=dict(color=colors['font_color']),
+            title=dict(text="Perubahan (%)", font=dict(color=colors['font_color'])),
             tickfont=dict(color=colors['axis_color']),
         )
     ))
     
     fig.update_layout(
-        xaxis_title="Periode",
+        xaxis_title=f"Tanggal ({period_label})",
         yaxis_title="Komoditas",
     )
     
-    return apply_default_layout(fig, LABELS["price_heatmap"])
+    return apply_default_layout(fig, f"{LABELS['price_heatmap']} ({period_label})")
 
 
 def create_small_multiples(
